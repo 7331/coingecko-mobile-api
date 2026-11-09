@@ -3,7 +3,7 @@ from datetime import UTC, datetime
 import matplotlib.figure
 import matplotlib.patches
 
-from app.infrastructure.coingecko_api.schemas import OhlcPoint
+from coingecko_mobile_api.infrastructure.coingecko_api.schemas import OhlcPoint
 
 UP_CANDLE_COLOR = "#2ebd85"
 DOWN_CANDLE_COLOR = "#f6465d"

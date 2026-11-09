@@ -8,12 +8,12 @@ package, and every process opening its resources once and passing them down.
 
 ```mermaid
 flowchart TD
-    entry["Entry points: app/cli.py (typer), per-command sync wrappers"] --> domain["app/coingecko: service, lookup resolver, rendering"]
-    domain --> infra["app/infrastructure/coingecko_api: client, schemas, enums, errors"]
-    infra --> shared["app/shared (logging) | app/configuration"]
+    entry["Entry points: coingecko_mobile_api/cli.py (typer), per-command sync wrappers"] --> domain["coingecko_mobile_api/coingecko: service, lookup, rendering"]
+    domain --> infra["infrastructure/coingecko_api: client, schemas, enums, errors"]
+    infra --> shared["shared (logging) | configuration"]
 ```
 
-1. `app/infrastructure/coingecko_api/` — the external system's connection package. The client is
+1. `coingecko_mobile_api/infrastructure/coingecko_api/` — the external system's connection package. The client is
    the contract: one method per endpoint, typed keyword-only arguments, typed returns, statuses
    mapped to `CoinGeckoApi*Error` subclasses (`errors.py`). Wire shapes live in `schemas.py`
    (because `schemas.py` means pydantic wire shapes everywhere), closed value sets in `enums.py`,
@@ -21,7 +21,7 @@ flowchart TD
    (`COINGECKO_API_*`). One `httpx.AsyncClient` per process, opened on the caller's
    `AsyncExitStack`; transport-level connect retries plus `stamina` retries on connection errors,
    429 and 5xx with jittered backoff.
-2. `app/coingecko/` — the domain. `service.py` (`CoinGeckoService`) holds the use cases other code
+2. `coingecko_mobile_api/coingecko/` — the domain. `service.py` (`CoinGeckoService`) holds the use cases other code
    calls (a Discord bot imports this, not the client): `resolve_coin` and `coin_price_summary`.
    `chart_image.py` renders the dark-theme candlestick PNG that `cg chart` and the Discord bot
    share. `lookup.py` (`CoinResolver`) keeps a top-300 `coins_lite` index on disk
@@ -29,7 +29,7 @@ flowchart TD
    `difflib` fuzzy hits and a search-endpoint fallback, and serves stale cache when a refresh fails.
    Read types for callers sit in `types.py`; domain errors in `errors.py`; CLI output formatting in
    `rendering.py`.
-3. `app/cli.py` — the typer app. `QueryDefaultingGroup` sends any unknown first token to the
+3. `coingecko_mobile_api/cli.py` — the typer app. `QueryDefaultingGroup` sends any unknown first token to the
    `price` command, so `cg btc`, `cg bitcvoin --vs eur` and `cg global` all work. Command functions
    are sync wrappers that run their async implementation on uvloop; they build one service per run
    through `composition.py` and either call the service (query commands) or the client (raw

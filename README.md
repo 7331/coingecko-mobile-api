@@ -21,8 +21,8 @@ uv run cg --help                   # every endpoint command
 
 ## Layout
 
-- `backend/app/infrastructure/coingecko_api/` — the API client, one method per endpoint, one pydantic model per wire shape, field names kept exactly as the API sends them.
-- `backend/app/coingecko/` — the domain: fuzzy coin resolution over a cached top-300 index, the price-summary use case, and the CLI commands.
+- `backend/coingecko_mobile_api/infrastructure/coingecko_api/` — the API client, one method per endpoint, one pydantic model per wire shape, field names kept exactly as the API sends them.
+- `backend/coingecko_mobile_api/coingecko/` — the domain: fuzzy coin resolution over a cached top-300 index, the price-summary use case, and the CLI commands.
 - `e2e/` — end-to-end flows that drive the built CLI against the live API.
 
 See [ARCHITECTURE.md](ARCHITECTURE.md).

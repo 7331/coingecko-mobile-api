@@ -1,4 +1,4 @@
-from app.coingecko.types import LookupCandidate
+from coingecko_mobile_api.coingecko.types import LookupCandidate
 
 
 class CoinNotFoundError(Exception):

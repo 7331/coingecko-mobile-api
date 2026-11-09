@@ -16,8 +16,8 @@ dependencies = [
 ]
 
 [project.scripts]
-cg = "app.cli:run_command_line"
-coingecko = "app.cli:run_command_line"
+cg = "coingecko_mobile_api.cli:run_command_line"
+coingecko = "coingecko_mobile_api.cli:run_command_line"
 
 [dependency-groups]
 dev = [
@@ -36,7 +36,7 @@ prerelease = "explicit"
 exclude-newer = "7 days"
 
 [tool.uv.build-backend]
-module-name = "app"
+module-name = "coingecko_mobile_api"
 module-root = ""
 
 [tool.ruff]
@@ -67,7 +67,7 @@ max-positional-args = 1
 max-complexity = 10
 
 [tool.ruff.lint.isort]
-known-first-party = ["app"]
+known-first-party = ["coingecko_mobile_api"]
 force-sort-within-sections = true
 
 [tool.ruff.lint.flake8-bugbear]
@@ -87,22 +87,22 @@ extend-immutable-calls = ["typer.Option", "typer.Argument"]
 "asyncio.wait_for".msg = "Use `async with asyncio.timeout(seconds):`."
 "functools.wraps".msg = "No hand-made decorators: write the wrapped behaviour as a plain call."
 "functools.update_wrapper".msg = "No hand-made decorators: write the wrapped behaviour as a plain call."
-"structlog.get_logger".msg = "Use app.shared.logging.get_logger."
-"structlog.stdlib.get_logger".msg = "Use app.shared.logging.get_logger."
-"logging.getLogger".msg = "Use app.shared.logging.get_logger."
+"structlog.get_logger".msg = "Use coingecko_mobile_api.shared.logging.get_logger."
+"structlog.stdlib.get_logger".msg = "Use coingecko_mobile_api.shared.logging.get_logger."
+"logging.getLogger".msg = "Use coingecko_mobile_api.shared.logging.get_logger."
 "structlog.contextvars.bind_contextvars".msg = "Log values travel as LogEvent fields."
 "structlog.contextvars.bound_contextvars".msg = "Log values travel as LogEvent fields."
 "json".msg = "JSON goes through pydantic (model_validate_json, model_dump_json, TypeAdapter); raw JSON with no model uses orjson."
 "asyncio.run".msg = "Start the event loop with uvloop.run(main())."
 "asyncio.set_event_loop_policy".msg = "Event-loop policies are deprecated since 3.14; start the loop with uvloop.run(main())."
 "uvloop.install".msg = "Event-loop policies are deprecated since 3.14; start the loop with uvloop.run(main())."
-"asyncio.to_thread".msg = "Run blocking work on its own named executor (app.shared.blocking_executor), not the default one."
+"asyncio.to_thread".msg = "Run blocking work on its own named executor, not the default one."
 
 [tool.ruff.lint.per-file-ignores]
-"app/shared/logging.py" = ["TID251"]
+"coingecko_mobile_api/shared/logging.py" = ["TID251"]
 "__init__.py" = ["F401"]
-"app/**/cli.py" = ["PLR0917", "FBT001", "FBT002"]
-"app/cli.py" = ["PLR0917", "FBT001", "FBT002"]
+"coingecko_mobile_api/**/cli.py" = ["PLR0917", "FBT001", "FBT002"]
+"coingecko_mobile_api/cli.py" = ["PLR0917", "FBT001", "FBT002"]
 
 [tool.ruff.format]
 quote-style = "double"
@@ -127,13 +127,13 @@ exclude = [".venv"]
 DEP002 = ["uvloop"]
 
 [tool.importlinter]
-root_packages = ["app"]
+root_packages = ["coingecko_mobile_api"]
 include_external_packages = true
 
 [[tool.importlinter.contracts]]
 name = "Entry points, the domain and infrastructure form layers"
 type = "layers"
-containers = ["app"]
+containers = ["coingecko_mobile_api"]
 layers = [
     "cli",
     "coingecko",
@@ -147,9 +147,9 @@ module's service from an entry point instead."""
 [[tool.importlinter.contracts]]
 name = "Only the domain resolves coins; raw endpoint commands in the CLI read the client directly"
 type = "forbidden"
-source_modules = ["app.cli"]
-forbidden_modules = ["app.infrastructure.coingecko_api.client"]
+source_modules = ["coingecko_mobile_api.cli"]
+forbidden_modules = ["coingecko_mobile_api.infrastructure.coingecko_api.client"]
 allow_indirect_imports = "true"
 broken_contract_guidance = """
 The top-level CLI module holds only the Typer app and the default price command. Endpoint commands
-live in app.coingecko.cli, which may use the client directly."""
+live in coingecko_mobile_api.coingecko.cli, which may use the client directly."""

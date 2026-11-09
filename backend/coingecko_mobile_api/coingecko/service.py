@@ -1,8 +1,8 @@
-from app.coingecko.errors import CoinNotFoundError
-from app.coingecko.lookup import CoinResolver
-from app.coingecko.types import CoinPriceSummary, ResolvedCoin
-from app.infrastructure.coingecko_api.client import CoinGeckoApiClient
-from app.infrastructure.coingecko_api.errors import CoinGeckoInvalidRequestError
+from coingecko_mobile_api.coingecko.errors import CoinNotFoundError
+from coingecko_mobile_api.coingecko.lookup import CoinResolver
+from coingecko_mobile_api.coingecko.types import CoinPriceSummary, ResolvedCoin
+from coingecko_mobile_api.infrastructure.coingecko_api.client import CoinGeckoApiClient
+from coingecko_mobile_api.infrastructure.coingecko_api.errors import CoinGeckoInvalidRequestError
 
 
 class CoinGeckoService:

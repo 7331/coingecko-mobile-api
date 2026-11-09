@@ -5,9 +5,9 @@ from pydantic import TypeAdapter
 import typer
 import uvloop
 
-from app.coingecko.chart_image import render_candlestick_chart
-from app.coingecko.composition import build_coin_gecko_service
-from app.coingecko.rendering import (
+from coingecko_mobile_api.coingecko.chart_image import render_candlestick_chart
+from coingecko_mobile_api.coingecko.composition import build_coin_gecko_service
+from coingecko_mobile_api.coingecko.rendering import (
     console,
     format_compact_number,
     format_money,
@@ -17,15 +17,15 @@ from app.coingecko.rendering import (
     print_line,
     print_table,
 )
-from app.coingecko.types import CoinPriceSummary, MatchKind, ResolvedCoin
-from app.infrastructure.coingecko_api.client import CoinGeckoApiClient
-from app.infrastructure.coingecko_api.enums import (
+from coingecko_mobile_api.coingecko.types import CoinPriceSummary, MatchKind, ResolvedCoin
+from coingecko_mobile_api.infrastructure.coingecko_api.client import CoinGeckoApiClient
+from coingecko_mobile_api.infrastructure.coingecko_api.enums import (
     CoinsOrder,
     CoinTickersOrder,
     TickersType,
     TokenomicsDuration,
 )
-from app.infrastructure.coingecko_api.schemas import (
+from coingecko_mobile_api.infrastructure.coingecko_api.schemas import (
     CoinCategory,
     CoinInsight,
     CoinLite,

@@ -4,12 +4,12 @@ from typer._click import Command as ClickCommand
 from typer._click import Context as ClickContext
 from typer.core import TyperGroup
 
-from app.coingecko.cli import register_commands
-from app.coingecko.errors import CoinNotFoundError
-from app.coingecko.rendering import console
-from app.configuration import read_application_settings
-from app.infrastructure.coingecko_api.errors import CoinGeckoApiError
-from app.shared.logging import configure_logging
+from coingecko_mobile_api.coingecko.cli import register_commands
+from coingecko_mobile_api.coingecko.errors import CoinNotFoundError
+from coingecko_mobile_api.coingecko.rendering import console
+from coingecko_mobile_api.configuration import read_application_settings
+from coingecko_mobile_api.infrastructure.coingecko_api.errors import CoinGeckoApiError
+from coingecko_mobile_api.shared.logging import configure_logging
 
 
 class QueryDefaultingGroup(TyperGroup):

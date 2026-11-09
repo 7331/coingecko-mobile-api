@@ -3,10 +3,13 @@
 Read [`ARCHITECTURE.md`](ARCHITECTURE.md) first. This file lists where this client deliberately
 differs from `7331/python-backend-template`.
 
+- The importable package is `coingecko_mobile_api`, not the template's `app`: a library installed
+  into another project (skullmasher) cannot own the name `app`. The `cg`/`coingecko` console scripts
+  are unchanged.
 - This is a **client**, not a service: no FastAPI app, no uvicorn, no Docker, no deploy, no
   Postgres, no passkey accounts, no middlewares, no OpenAPI dump. The process entry points are the
-  `cg` / `coingecko` console scripts (`backend/app/cli.py`), which run each command on uvloop.
-- The API is the contract. Every method in `app/infrastructure/coingecko_api/client.py` maps to one
+  `cg` / `coingecko` console scripts (`backend/coingecko_mobile_api/cli.py`), which run each command on uvloop.
+- The API is the contract. Every method in `coingecko_mobile_api/infrastructure/coingecko_api/client.py` maps to one
   mobile-API endpoint and every model in its `schemas.py` maps to one wire shape with the **exact
   wire field names** (`by_alias=True` round-trips; `rate_type` aliases the wire's `type`). Fields the
   request flags drop (`tickers=false`) are optional and `None`; fields observed `null` on tail coins
@@ -18,7 +21,7 @@ differs from `7331/python-backend-template`.
   `order` values fall back to `market_cap_desc`, `market_chart` needs `days` (422 without) and
   rejects `interval=hourly` beyond 90 days (400), ticker `type` only accepts `spot`, tokenomics
   `duration` accepts `m1|m3|m6|y1`. The mobile `/api/mobile/search` is not fuzzy (`bitcvoin` →
-  `[]`), which is why `app/coingecko/lookup.py` keeps its own on-disk index of the top 300 coins
+  `[]`), which is why `coingecko_mobile_api/coingecko/lookup.py` keeps its own on-disk index of the top 300 coins
   (`COINGECKO_LOOKUP_CACHE_*`) and falls back to the search endpoint for coins outside it.
 - The ticker `type` and `order` enums in `enums.py` are the closed sets the API rejects on; extend
   them only after a live request proves a new value.

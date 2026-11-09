@@ -5,14 +5,14 @@ import time
 import httpx
 from pydantic import BaseModel, ValidationError
 
-from app.coingecko.configuration import CoinLookupSettings
-from app.coingecko.errors import CoinNotFoundError
-from app.coingecko.types import LookupCandidate, MatchKind, ResolvedCoin
-from app.infrastructure.coingecko_api.client import CoinGeckoApiClient
-from app.infrastructure.coingecko_api.enums import CoinsOrder
-from app.infrastructure.coingecko_api.errors import CoinGeckoApiError
-from app.infrastructure.coingecko_api.schemas import CoinLite
-from app.shared.logging import get_logger
+from coingecko_mobile_api.coingecko.configuration import CoinLookupSettings
+from coingecko_mobile_api.coingecko.errors import CoinNotFoundError
+from coingecko_mobile_api.coingecko.types import LookupCandidate, MatchKind, ResolvedCoin
+from coingecko_mobile_api.infrastructure.coingecko_api.client import CoinGeckoApiClient
+from coingecko_mobile_api.infrastructure.coingecko_api.enums import CoinsOrder
+from coingecko_mobile_api.infrastructure.coingecko_api.errors import CoinGeckoApiError
+from coingecko_mobile_api.infrastructure.coingecko_api.schemas import CoinLite
+from coingecko_mobile_api.shared.logging import get_logger
 
 logger = get_logger(__name__)
 

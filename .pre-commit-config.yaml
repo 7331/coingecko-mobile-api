@@ -12,19 +12,19 @@ repos:
         always_run: true
       - id: backend-format
         name: ruff format --check (backend)
-        entry: uv run --directory backend ruff format --check app
+        entry: uv run --directory backend ruff format --check coingecko_mobile_api
         language: system
         pass_filenames: false
         files: ^backend/
       - id: backend-lint
         name: ruff check (backend)
-        entry: uv run --directory backend ruff check app
+        entry: uv run --directory backend ruff check coingecko_mobile_api
         language: system
         pass_filenames: false
         files: ^backend/
       - id: backend-types
         name: ty check (backend)
-        entry: uv run --directory backend ty check app
+        entry: uv run --directory backend ty check coingecko_mobile_api
         language: system
         pass_filenames: false
         files: ^backend/

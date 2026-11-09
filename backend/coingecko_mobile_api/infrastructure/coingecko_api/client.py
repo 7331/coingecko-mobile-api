@@ -5,21 +5,21 @@ import httpx
 from pydantic import TypeAdapter
 import stamina
 
-from app.infrastructure.coingecko_api.configuration import CoinGeckoApiSettings
-from app.infrastructure.coingecko_api.enums import (
+from coingecko_mobile_api.infrastructure.coingecko_api.configuration import CoinGeckoApiSettings
+from coingecko_mobile_api.infrastructure.coingecko_api.enums import (
     CoinsOrder,
     CoinTickersOrder,
     MarketChartInterval,
     TickersType,
     TokenomicsDuration,
 )
-from app.infrastructure.coingecko_api.errors import (
+from coingecko_mobile_api.infrastructure.coingecko_api.errors import (
     CoinGeckoInvalidRequestError,
     CoinGeckoNotFoundError,
     CoinGeckoRateLimitedError,
     CoinGeckoUpstreamError,
 )
-from app.infrastructure.coingecko_api.schemas import (
+from coingecko_mobile_api.infrastructure.coingecko_api.schemas import (
     CoinCategory,
     CoinInsight,
     CoinLite,
