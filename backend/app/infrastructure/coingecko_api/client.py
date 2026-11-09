@@ -31,6 +31,7 @@ from app.infrastructure.coingecko_api.schemas import (
     MobileCoinDetail,
     MobileSearchResults,
     NewsArticle,
+    OhlcPoint,
     TickerPriceData,
     TokenomicsAllocationResponse,
     TokenomicsEmissionsSeries,
@@ -50,6 +51,7 @@ _TICKER_PRICE_DATA_ADAPTER: TypeAdapter[TickerPriceData] = TypeAdapter(TickerPri
 _COIN_TICKERS_ADAPTER: TypeAdapter[CoinTickers] = TypeAdapter(CoinTickers)
 _EXCHANGE_RATES_ADAPTER: TypeAdapter[ExchangeRates] = TypeAdapter(ExchangeRates)
 _MARKET_CHART_WIRE_ADAPTER: TypeAdapter[dict[str, list[list[float]]]] = TypeAdapter(dict[str, list[list[float]]])
+_OHLC_WIRE_ADAPTER: TypeAdapter[list[list[float]]] = TypeAdapter(list[list[float]])
 _EMISSIONS_WIRE_ADAPTER: TypeAdapter[list[dict[str, object]]] = TypeAdapter(list[dict[str, object]])
 _FINANCIALS_WIRE_ADAPTER: TypeAdapter[list[dict[str, object]]] = TypeAdapter(list[dict[str, object]])
 
@@ -178,6 +180,20 @@ class CoinGeckoApiClient:
             f"/api/v3/coins/{coin_id}/market_chart", params=params, adapter=_MARKET_CHART_WIRE_ADAPTER
         )
         return MarketChartSeries.model_validate_wire(wire)
+
+    async def fetch_coin_ohlc(
+        self,
+        *,
+        coin_id: str,
+        vs_currency: str,
+        days: int | Literal["max"],
+    ) -> list[OhlcPoint]:
+        wire = await self._request_json(
+            f"/api/mobile/coins/{coin_id}/ohlc",
+            params={"vs_currency": vs_currency, "days": str(days)},
+            adapter=_OHLC_WIRE_ADAPTER,
+        )
+        return [OhlcPoint.from_wire_row(wire_row) for wire_row in wire]
 
     async def fetch_tokenomics_allocation(self, *, coin_id: str) -> TokenomicsAllocationResponse:
         return await self._request_json(

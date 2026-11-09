@@ -18,7 +18,8 @@ PASS/FAIL per check and the process exits non-zero when any check fails.
 
 - `lookup_flow` — `cg btc`, `cg bitcvoin` (fuzzy), `cg notacoin` (exit 3), `cg price` with `--vs eur`.
 - `markets_flow` — `cg coins`, `cg coins --json`, `cg global`, `cg rates eur`.
-- `coin_flow` — `cg coin bitcoin --json`, `cg chart`, `cg markets`, `cg news`, `cg allocation`,
-  `cg emissions`, `cg financials`, `cg insights`, `cg categories --contains meme`.
+- `coin_flow` — `cg coin bitcoin --json`, `cg chart` (candle count, a written PNG over 10 kB, and a
+  rejected day count), `cg markets`, `cg news`, `cg allocation`, `cg emissions`, `cg financials`,
+  `cg insights`, `cg categories --contains meme`.
 - `search_flow` — `cg search bitcoin --json` (typed results for coins, RWAs, NFTs, exchanges,
   categories) and a typo search returning an empty-but-valid payload.

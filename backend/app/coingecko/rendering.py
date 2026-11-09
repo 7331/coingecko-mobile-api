@@ -1,12 +1,9 @@
-from collections.abc import Sequence
 from datetime import UTC, datetime
 
 from rich.console import Console
 from rich.table import Table
 
 console = Console(highlight=False)
-
-_SPARKLINE_CHARACTERS = "▁▂▃▄▅▆▇█"
 
 _CURRENCY_SYMBOLS = {"usd": "$", "eur": "€", "gbp": "£", "jpy": "¥", "btc": "₿", "eth": "Ξ"}
 
@@ -42,25 +39,6 @@ def format_percentage_plain(value: float) -> str:
 def format_timestamp_milliseconds(timestamp_unix_milliseconds: int) -> str:
     moment = datetime.fromtimestamp(timestamp_unix_milliseconds / 1000, tz=UTC)
     return moment.strftime("%Y-%m-%d %H:%M")
-
-
-def render_sparkline(*, values: Sequence[float], width: int) -> str:
-    if not values:
-        return ""
-    if len(values) <= width:
-        sampled = list(values)
-    else:
-        bucket_count = len(values) / width
-        sampled = [
-            sum(values[round(bucket * bucket_count) : round((bucket + 1) * bucket_count)])
-            / max(1, round((bucket + 1) * bucket_count) - round(bucket * bucket_count))
-            for bucket in range(width)
-        ]
-    low, high = min(sampled), max(sampled)
-    span = high - low or 1.0
-    return "".join(
-        _SPARKLINE_CHARACTERS[round((value - low) / span * (len(_SPARKLINE_CHARACTERS) - 1))] for value in sampled
-    )
 
 
 def print_table(*, title: str, columns: list[str], rows: list[list[str]]) -> None:

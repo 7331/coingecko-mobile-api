@@ -1,3 +1,5 @@
+from pathlib import Path
+
 from pydantic import BaseModel, TypeAdapter
 
 from cli_runner import CliResult
@@ -22,13 +24,15 @@ class CoinMarketDataModel(BaseModel):
     max_supply: float | None
 
 
-class ChartModel(BaseModel):
-    prices: list[ChartPointModel]
-
-
-class ChartPointModel(BaseModel):
+class OhlcModel(BaseModel):
     timestamp_unix_milliseconds: int
-    value: float
+    open_price: float
+    high_price: float
+    low_price: float
+    close_price: float
+
+
+ChartListAdapter = TypeAdapter(list[OhlcModel])
 
 
 class NewsModel(BaseModel):
@@ -44,7 +48,7 @@ class TickerPriceDataModel(BaseModel):
     volume_percentage: float | None
 
 
-def run_coin_flow(report: FlowReport) -> None:
+def run_coin_flow(report: FlowReport, *, work_directory: Path) -> None:
     detail_result = CliResult.run("coin", "bitcoin", "--json")
     detail = detail_result.json_output(CoinDetailModel)
     report.require_check(
@@ -54,12 +58,26 @@ def run_coin_flow(report: FlowReport) -> None:
     )
 
     chart = CliResult.run("chart", "btc", "--days", "30", "--json")
-    chart_series = chart.json_output(ChartModel)
-    chart_prices = [point.value for point in chart_series.prices]
+    candles = ChartListAdapter.validate_json(chart.stdout)
     report.require_check(
-        "chart btc 30d returns hundreds of points",
-        passed=chart.exit_code == 0 and len(chart_prices) > 200,
-        detail=f"exit {chart.exit_code}, {len(chart_prices)} points, first {chart_prices[0]:.2f}",
+        "chart btc 30d returns 180 candles",
+        passed=chart.exit_code == 0 and len(candles) == 180,
+        detail=f"exit {chart.exit_code}, {len(candles)} candles, first {candles[0].open_price:.2f}",
+    )
+
+    chart_image_path = work_directory / "chart-btc-7d.png"
+    rendered = CliResult.run("chart", "btc", "--days", "7", "-o", str(chart_image_path))
+    report.require_check(
+        "chart btc 7d writes a candlestick png",
+        passed=rendered.exit_code == 0 and chart_image_path.exists() and chart_image_path.stat().st_size > 10_000,
+        detail=f"exit {rendered.exit_code}, {chart_image_path.stat().st_size if chart_image_path.exists() else 0} bytes",
+    )
+
+    rejected = CliResult.run("chart", "btc", "--days", "2")
+    report.require_check(
+        "chart rejects an unsupported day count cleanly",
+        passed=rejected.exit_code == 2 and "days must be one of" in rejected.stderr + rejected.stdout,
+        detail=f"exit {rejected.exit_code}",
     )
 
     markets = CliResult.run("markets", "btc")

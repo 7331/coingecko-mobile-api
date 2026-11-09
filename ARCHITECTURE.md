@@ -23,7 +23,8 @@ flowchart TD
    429 and 5xx with jittered backoff.
 2. `app/coingecko/` — the domain. `service.py` (`CoinGeckoService`) holds the use cases other code
    calls (a Discord bot imports this, not the client): `resolve_coin` and `coin_price_summary`.
-   `lookup.py` (`CoinResolver`) keeps a top-300 `coins_lite` index on disk
+   `chart_image.py` renders the dark-theme candlestick PNG that `cg chart` and the Discord bot
+   share. `lookup.py` (`CoinResolver`) keeps a top-300 `coins_lite` index on disk
    (`configuration.py`, `COINGECKO_LOOKUP_*`), serves exact id/slug/symbol/name hits, prefix hits,
    `difflib` fuzzy hits and a search-endpoint fallback, and serves stale cache when a refresh fails.
    Read types for callers sit in `types.py`; domain errors in `errors.py`; CLI output formatting in

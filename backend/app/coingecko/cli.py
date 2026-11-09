@@ -5,6 +5,7 @@ from pydantic import TypeAdapter
 import typer
 import uvloop
 
+from app.coingecko.chart_image import render_candlestick_chart
 from app.coingecko.composition import build_coin_gecko_service
 from app.coingecko.rendering import (
     console,
@@ -15,28 +16,25 @@ from app.coingecko.rendering import (
     format_timestamp_milliseconds,
     print_line,
     print_table,
-    render_sparkline,
 )
 from app.coingecko.types import CoinPriceSummary, MatchKind, ResolvedCoin
 from app.infrastructure.coingecko_api.client import CoinGeckoApiClient
 from app.infrastructure.coingecko_api.enums import (
     CoinsOrder,
     CoinTickersOrder,
-    MarketChartInterval,
     TickersType,
     TokenomicsDuration,
 )
 from app.infrastructure.coingecko_api.schemas import (
-    ChartPoint,
     CoinCategory,
     CoinInsight,
     CoinLite,
     CoinMarketData,
     CoinTickers,
     FullCoin,
-    MarketChartSeries,
     MobileCoinDetail,
     NewsArticle,
+    OhlcPoint,
     TickerPriceData,
     TokenomicsEmissionsSeries,
     TokenomicsFinancialsSeries,
@@ -54,6 +52,7 @@ _INSIGHT_LIST_ADAPTER = TypeAdapter(list[CoinInsight])
 _CATEGORY_LIST_ADAPTER = TypeAdapter(list[CoinCategory])
 _EMISSIONS_LIST_ADAPTER = TypeAdapter(list[TokenomicsEmissionsSeries])
 _FINANCIALS_LIST_ADAPTER = TypeAdapter(list[TokenomicsFinancialsSeries])
+_OHLC_LIST_ADAPTER = TypeAdapter(list[OhlcPoint])
 
 _RESOLVED_MATCH_KINDS = (MatchKind.PREFIX, MatchKind.FUZZY, MatchKind.API_SEARCH)
 
@@ -318,29 +317,36 @@ async def _coin(
 def chart_command(
     query: QueryArgument,
     vs_currency: Annotated[str, typer.Option("--vs")] = "usd",
-    days: Annotated[str, typer.Option("--days", help="Number of days, or 'max'")] = "1",
-    interval: Annotated[MarketChartInterval | None, typer.Option("--interval")] = None,
-    width: Annotated[int, typer.Option("--width", min=10, max=200)] = 80,
+    days: Annotated[str, typer.Option("--days", help="One of 1, 7, 14, 30, 90, 180, 365 or max")] = "1",
+    output_path: Annotated[
+        str | None, typer.Option("-o", "--output", help="Image path; defaults to ./<coin>-<days>.png")
+    ] = None,
     as_json: JsonOption = False,
 ) -> None:
-    uvloop.run(_chart(query=query, vs_currency=vs_currency, days=days, interval=interval, width=width, as_json=as_json))
+    uvloop.run(_chart(query=query, vs_currency=vs_currency, days=days, output_path=output_path, as_json=as_json))
 
 
-async def _chart(
-    *, query: str, vs_currency: str, days: str, interval: MarketChartInterval | None, width: int, as_json: bool
-) -> None:
-    parsed_days = _parse_days(raw_days=days)
+async def _chart(*, query: str, vs_currency: str, days: str, output_path: str | None, as_json: bool) -> None:
+    parsed_days = _parse_ohlc_days(raw_days=days)
     async with AsyncExitStack() as exit_stack:
         service = build_coin_gecko_service(exit_stack=exit_stack)
         resolved = await service.resolve_coin(query=query)
-        series = await service.client.fetch_market_chart(
-            coin_id=resolved.coin_id, vs_currency=vs_currency, days=parsed_days, interval=interval
+        candles = await service.client.fetch_coin_ohlc(
+            coin_id=resolved.coin_id, vs_currency=vs_currency, days=parsed_days
         )
     _print_resolution(resolved=resolved, query=query, as_json=as_json)
     if as_json:
-        typer.echo(series.model_dump_json(indent=2))
-    else:
-        _render_chart(series=series, coin_id=resolved.coin_id, vs_currency=vs_currency, days=days, width=width)
+        typer.echo(_OHLC_LIST_ADAPTER.dump_json(candles, by_alias=True, indent=2).decode())
+        return
+    image_path = output_path if output_path is not None else f"{resolved.coin_id}-{days}.png"
+    render_candlestick_chart(
+        candles=candles,
+        coin_name=resolved.name,
+        days_label=_days_label(days=days),
+        vs_currency=vs_currency,
+        output_path=image_path,
+    )
+    print_line(f"[bold]{len(candles)} candles[/] -> {image_path}")
 
 
 def markets_command(
@@ -602,16 +608,25 @@ def _print_resolution(*, resolved: ResolvedCoin, query: str, as_json: bool) -> N
     print_line(f"[dim]{query!r} → {resolved.coin_id} ({resolved.name})[/]")
 
 
-def _parse_days(*, raw_days: str) -> int | Literal["max"]:
+_OHLC_DAYS = (1, 7, 14, 30, 90, 180, 365)
+
+
+def _parse_ohlc_days(*, raw_days: str) -> int | Literal["max"]:
     if raw_days == "max":
         return "max"
     try:
         parsed = int(raw_days)
     except ValueError:
-        raise typer.BadParameter("days must be a positive integer or 'max'") from None
-    if parsed <= 0:
-        raise typer.BadParameter("days must be a positive integer or 'max'")
+        parsed = -1
+    if parsed not in _OHLC_DAYS:
+        comma_days = ", ".join(str(day) for day in _OHLC_DAYS)
+        raise typer.BadParameter(f"days must be one of {comma_days} or 'max'")
     return parsed
+
+
+def _days_label(*, days: str) -> str:
+    labels = {"1": "24H", "7": "7D", "14": "14D", "30": "30D", "90": "90D", "180": "180D", "365": "1Y", "max": "MAX"}
+    return labels.get(days, days)
 
 
 def _optional_percentage(value: float | None) -> str:
@@ -724,30 +739,6 @@ def _render_coin_sentiment(*, detail: MobileCoinDetail) -> None:
         sentiment_bits.append(homepages[0])
     if sentiment_bits:
         print_line(" · ".join(sentiment_bits))
-
-
-def _render_chart(*, series: MarketChartSeries, coin_id: str, vs_currency: str, days: str, width: int) -> None:
-    prices = [point.value for point in series.prices]
-    if not prices:
-        print_line("No chart data")
-        return
-    first, last = prices[0], prices[-1]
-    low, high = min(prices), max(prices)
-    low_point: ChartPoint = series.prices[prices.index(low)]
-    high_point: ChartPoint = series.prices[prices.index(high)]
-    change = (last - first) / first * 100 if first else 0.0
-    print_line(
-        f"[bold]{coin_id}[/] · {days}d in {vs_currency.upper()} · "
-        f"{format_money(first, currency_code=vs_currency)} → {format_money(last, currency_code=vs_currency)} "
-        f"({format_percentage_plain(change)})"
-    )
-    color = "green" if last >= first else "red"
-    console.print(f"[{color}]{render_sparkline(values=prices, width=width)}[/]")
-    print_line(
-        f"low {format_money(low, currency_code=vs_currency)} ({format_timestamp_milliseconds(low_point.timestamp_unix_milliseconds)}) · "
-        f"high {format_money(high, currency_code=vs_currency)} ({format_timestamp_milliseconds(high_point.timestamp_unix_milliseconds)}) · "
-        f"{len(prices)} points"
-    )
 
 
 def _render_coin_tickers(*, result: CoinTickers) -> None:

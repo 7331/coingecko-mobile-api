@@ -22,6 +22,14 @@ differs from `7331/python-backend-template`.
   (`COINGECKO_LOOKUP_CACHE_*`) and falls back to the search endpoint for coins outside it.
 - The ticker `type` and `order` enums in `enums.py` are the closed sets the API rejects on; extend
   them only after a live request proves a new value.
+- `requires-python` is `>=3.14`, not the template's `>=3.15`: skullmasher (the Discord bot that
+  consumes this library) pins 3.14 in its `.python-version`, so no 3.15-only syntax (PEP 810
+  `lazy import`) may enter this package. Verified by running the CLI and the chart renderer on a
+  3.14 interpreter.
+- Charts are candlesticks from `/api/mobile/coins/{id}/ohlc` (the v3 path 301s to it). Its
+  `days` parameter accepts only `1|7|14|30|90|180|365|max` (anything else is a 400) and the candle
+  step follows the range: 30 minutes for `1`, 4 hours for `7|14|30`, 4 days for `90|180|365|max`.
+  `chart_image.py` renders the PNG on matplotlib; there is no terminal chart.
 - Tests are end-to-end runs against the live API (`uv run --project e2e python run_flows.py`); there
   are no unit tests. The flows need network access and cost about 25 requests.
 - `scratch/` holds request captures, probes and scratch output; never committed.

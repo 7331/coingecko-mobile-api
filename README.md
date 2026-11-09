@@ -4,7 +4,7 @@
 
 A Python client for the CoinGecko **mobile** API (`mobile-api.coingecko.com`): pydantic models one-to-one with every endpoint, a Typer CLI (`cg`), and a fuzzy coin resolver that turns `BTC`, `bitcvoin` or `Bitcoin` into `bitcoin`.
 
-Built for quick price lookups and as a library for bots (a Discord `.price BTC` command only needs `CoinGeckoService.coin_price_summary`).
+Built for quick price lookups and as a library for bots: `CoinGeckoService.coin_price_summary` gives a Discord `.p BTC` embed its numbers, and `render_candlestick_chart` draws the chart. Requires Python 3.14+ so the skullmasher bot can install it.
 
 ## Run
 
@@ -12,7 +12,7 @@ Built for quick price lookups and as a library for bots (a Discord `.price BTC` 
 cd backend && uv sync
 uv run cg btc                      # price for BTC / bitcoin / any fuzzy query
 uv run cg eth --vs eur --json
-uv run cg chart sol --days 7       # ASCII sparkline
+uv run cg chart sol --days 7       # candlestick PNG, -o to choose the path
 uv run cg markets btc              # top exchanges
 uv run cg global                   # total market cap, fear & greed, dominance
 uv run cg news btc --per-page 5

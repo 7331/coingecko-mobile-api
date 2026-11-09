@@ -413,6 +413,25 @@ class ChartPoint(Base):
         return cls(timestamp_unix_milliseconds=round(timestamp_milliseconds), value=value)
 
 
+class OhlcPoint(Base):
+    timestamp_unix_milliseconds: int
+    open_price: float
+    high_price: float
+    low_price: float
+    close_price: float
+
+    @classmethod
+    def from_wire_row(cls, wire_row: list[float]) -> OhlcPoint:
+        timestamp_milliseconds, open_price, high_price, low_price, close_price = wire_row
+        return cls(
+            timestamp_unix_milliseconds=round(timestamp_milliseconds),
+            open_price=open_price,
+            high_price=high_price,
+            low_price=low_price,
+            close_price=close_price,
+        )
+
+
 class MarketChartSeries(Base):
     prices: list[ChartPoint]
     market_caps: list[ChartPoint]
