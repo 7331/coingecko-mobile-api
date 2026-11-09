@@ -1,0 +1,154 @@
+[project]
+name = "coingecko-mobile-api"
+version = "0.1.0"
+description = "CoinGecko mobile API client: pydantic one-to-one models and a Typer CLI"
+requires-python = ">=3.15,<3.16"
+dependencies = [
+    "httpx>=0.28.0",
+    "pydantic>=2.14.0",
+    "pydantic-settings>=2.15.0",
+    "rich>=15.0.0",
+    "stamina>=25.1.0",
+    "structlog>=26.1.0",
+    "typer>=0.27.3",
+    "uvloop>=0.22.0",
+]
+
+[project.scripts]
+cg = "app.cli:run_command_line"
+coingecko = "app.cli:run_command_line"
+
+[dependency-groups]
+dev = [
+    "deptry>=0.25.1",
+    "import-linter>=2.15",
+    "ruff>=0.17.3",
+    "ty==0.0.94",
+]
+
+[build-system]
+requires = ["uv_build>=0.12.19,<0.13"]
+build-backend = "uv_build"
+
+[tool.uv]
+prerelease = "explicit"
+exclude-newer = "7 days"
+
+[tool.uv.build-backend]
+module-name = "app"
+module-root = ""
+
+[tool.ruff]
+line-length = 120
+target-version = "py315"
+
+[tool.ruff.lint]
+select = ["ALL"]
+ignore = [
+    "D",
+    "CPY",
+    "COM812",
+    "E501",
+    "TRY003",
+    "EM101",
+    "EM102",
+    "PLR0913",
+    "PLR2004",
+    "TC001",
+    "TC002",
+    "TC003",
+]
+
+[tool.ruff.lint.pylint]
+max-positional-args = 1
+
+[tool.ruff.lint.mccabe]
+max-complexity = 10
+
+[tool.ruff.lint.isort]
+known-first-party = ["app"]
+force-sort-within-sections = true
+
+[tool.ruff.lint.flake8-bugbear]
+extend-immutable-calls = ["typer.Option", "typer.Argument"]
+
+[tool.ruff.lint.flake8-tidy-imports.banned-api]
+"typing.cast".msg = "A cast stops the checker. Fix the type, or parse the value at the boundary."
+"typing.Any".msg = "No Any. Use a precise type, pydantic's JsonValue for JSON, or a model."
+"os.environ".msg = "Environment variables are read only by pydantic-settings in a configuration.py."
+"os.getenv".msg = "Environment variables are read only by pydantic-settings in a configuration.py."
+"dataclasses".msg = "Value objects are frozen pydantic models, not dataclasses."
+"typing.NamedTuple".msg = "Grouped values are frozen pydantic models, not NamedTuple bundles."
+"collections.namedtuple".msg = "Grouped values are frozen pydantic models, not namedtuple bundles."
+"requests".msg = "httpx is the one HTTP client."
+"aiohttp".msg = "httpx is the one HTTP client."
+"asyncio.gather".msg = "Use asyncio.TaskGroup: gather does not cancel siblings when one raises."
+"asyncio.wait_for".msg = "Use `async with asyncio.timeout(seconds):`."
+"functools.wraps".msg = "No hand-made decorators: write the wrapped behaviour as a plain call."
+"functools.update_wrapper".msg = "No hand-made decorators: write the wrapped behaviour as a plain call."
+"structlog.get_logger".msg = "Use app.shared.logging.get_logger."
+"structlog.stdlib.get_logger".msg = "Use app.shared.logging.get_logger."
+"logging.getLogger".msg = "Use app.shared.logging.get_logger."
+"structlog.contextvars.bind_contextvars".msg = "Log values travel as LogEvent fields."
+"structlog.contextvars.bound_contextvars".msg = "Log values travel as LogEvent fields."
+"json".msg = "JSON goes through pydantic (model_validate_json, model_dump_json, TypeAdapter); raw JSON with no model uses orjson."
+"asyncio.run".msg = "Start the event loop with uvloop.run(main())."
+"asyncio.set_event_loop_policy".msg = "Event-loop policies are deprecated since 3.14; start the loop with uvloop.run(main())."
+"uvloop.install".msg = "Event-loop policies are deprecated since 3.14; start the loop with uvloop.run(main())."
+"asyncio.to_thread".msg = "Run blocking work on its own named executor (app.shared.blocking_executor), not the default one."
+
+[tool.ruff.lint.per-file-ignores]
+"app/shared/logging.py" = ["TID251"]
+"__init__.py" = ["F401"]
+"app/**/cli.py" = ["PLR0917", "FBT001", "FBT002"]
+"app/cli.py" = ["PLR0917", "FBT001", "FBT002"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+
+[tool.ty.environment]
+python-version = "3.15"
+
+[tool.ty.analysis]
+respect-type-ignore-comments = false
+
+[tool.ty.rules]
+possibly-unresolved-reference = "error"
+possibly-missing-attribute = "error"
+possibly-missing-import = "error"
+unused-ignore-comment = "warn"
+
+[tool.deptry]
+exclude = [".venv"]
+
+[tool.deptry.per_rule_ignores]
+DEP002 = ["uvloop"]
+
+[tool.importlinter]
+root_packages = ["app"]
+include_external_packages = true
+
+[[tool.importlinter.contracts]]
+name = "Entry points, the domain and infrastructure form layers"
+type = "layers"
+containers = ["app"]
+layers = [
+    "cli",
+    "coingecko",
+    "infrastructure.coingecko_api",
+    "shared | configuration",
+]
+broken_contract_guidance = """
+A module imported one that sits above it in `layers`. Move the shared code down, or call the higher
+module's service from an entry point instead."""
+
+[[tool.importlinter.contracts]]
+name = "Only the domain resolves coins; raw endpoint commands in the CLI read the client directly"
+type = "forbidden"
+source_modules = ["app.cli"]
+forbidden_modules = ["app.infrastructure.coingecko_api.client"]
+allow_indirect_imports = "true"
+broken_contract_guidance = """
+The top-level CLI module holds only the Typer app and the default price command. Endpoint commands
+live in app.coingecko.cli, which may use the client directly."""

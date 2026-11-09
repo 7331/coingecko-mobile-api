@@ -1,0 +1,8 @@
+# Changes here will be overwritten by Copier; NEVER EDIT MANUALLY
+_commit: v0.1.9
+_src_path: gh:7331/python-backend-template
+include_postgres: false
+project_description: 'CoinGecko mobile API client: pydantic one-to-one models and
+    a Typer CLI'
+project_slug: coingecko-mobile-api
+root_package: coingecko
