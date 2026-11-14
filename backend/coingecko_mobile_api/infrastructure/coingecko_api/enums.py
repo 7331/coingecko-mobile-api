@@ -19,6 +19,11 @@ class CoinTickersOrder(StrEnum):
 
 class TickersType(StrEnum):
     SPOT = "spot"
+    PERPETUALS = "perpetuals"
+
+
+class DerivativesTickersScope(StrEnum):
+    UNEXPIRED = "unexpired"
 
 
 class TokenomicsDuration(StrEnum):

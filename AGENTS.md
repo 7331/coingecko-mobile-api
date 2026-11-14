@@ -19,12 +19,31 @@ differs from `7331/python-backend-template`.
 - Endpoint behaviour verified live on 2026-11-09, not assumed from the public docs: `coins_lite`
   needs `vs_currency` and `category_id` (422/404 without), `per_page` caps silently at 300, unknown
   `order` values fall back to `market_cap_desc`, `market_chart` needs `days` (422 without) and
-  rejects `interval=hourly` beyond 90 days (400), ticker `type` only accepts `spot`, tokenomics
-  `duration` accepts `m1|m3|m6|y1`. The mobile `/api/mobile/search` is not fuzzy (`bitcvoin` →
+  rejects `interval=hourly` beyond 90 days (400), tokenomics `duration` accepts `m1|m3|m6|y1`.
+  Ticker `type` accepts `spot` and `perpetuals` on `/api/mobile/coins/{id}/tickers` (verified
+  2026-11-14; the v3 `tickers_v2` path 301s to it). The mobile `/api/mobile/search` is not fuzzy (`bitcvoin` →
   `[]`), which is why `coingecko_mobile_api/coingecko/lookup.py` keeps its own on-disk index of the top 300 coins
   (`COINGECKO_LOOKUP_CACHE_*`) and falls back to the search endpoint for coins outside it.
 - The ticker `type` and `order` enums in `enums.py` are the closed sets the API rejects on; extend
   them only after a live request proves a new value.
+- Verified live on 2026-11-14: the mobile host also serves public v3 paths without a key.
+  `/api/v3/coins/markets?ids=` takes several exact coin ids in one call, `/api/v3/rwas/{id}` gives a
+  tokenized stock or ETF's name and `asset_type`, and
+  `/api/v3/derivatives/exchanges/{id}?include_tickers=unexpired` lists every perpetual pair of a
+  venue with CoinGecko's own `coin_id` or `rwa_id`, funding rate, open interest and index basis.
+  `/api/v3/coins/top_gainers_losers` is 401 (paid plans only). About 60 requests in two minutes
+  from one address starts returning 429.
+- `/api/v3/news/{coin_id}` answers with the general feed when a coin has no news of its own, and
+  `/api/v3/news` is that general feed with the coins each article is tagged with (20 articles a
+  page, `per_page` ignored). `coingecko/news.py` keeps only the articles that are the coin's own;
+  `cg news <coin>` prints those and `cg news-feed` prints the feed.
+- A coin's detail arrives with `null` for the price-change maps longer than its age, and with
+  `null` links and `country_origin` on tokenized stocks, so those fields are optional; 16 of 19
+  young coins and stock tokens failed validation before 2026-11-14.
+- The resolver prefers certainty over a guess: an exact id, symbol or name from the search endpoint,
+  then an exact id through `coins/markets`, come before prefix and fuzzy hits on the top-300 index.
+  Before 2026-11-14 `cg coin tac` returned OriginTrail (TRAC). A failing search request raises
+  instead of falling back to a fuzzy guess.
 - `requires-python` is `>=3.14`, not the template's `>=3.15`: skullmasher (the Discord bot that
   consumes this library) pins 3.14 in its `.python-version`, so no 3.15-only syntax (PEP 810
   `lazy import`) may enter this package. Verified by running the CLI and the chart renderer on a

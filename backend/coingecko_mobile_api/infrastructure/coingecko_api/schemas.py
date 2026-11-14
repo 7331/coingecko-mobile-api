@@ -74,7 +74,7 @@ class RoiData(Base):
 
 class CoinMarketData(Base):
     current_price: CurrencyMap
-    total_value_locked: float | None = None
+    total_value_locked: CurrencyMap | float | None = None
     mcap_to_tvl_ratio: float | None = None
     fdv_to_tvl_ratio: float | None = None
     roi: RoiData | None = None
@@ -101,23 +101,23 @@ class CoinMarketData(Base):
     price_change_percentage_1y: float | None = None
     market_cap_change_24h: float | None = None
     market_cap_change_percentage_24h: float | None = None
-    price_change_24h_in_currency: CurrencyMap
-    price_change_percentage_1h_in_currency: CurrencyMap
-    price_change_percentage_24h_in_currency: CurrencyMap
-    price_change_percentage_7d_in_currency: CurrencyMap
-    price_change_percentage_14d_in_currency: CurrencyMap
-    price_change_percentage_30d_in_currency: CurrencyMap
-    price_change_percentage_60d_in_currency: CurrencyMap
-    price_change_percentage_200d_in_currency: CurrencyMap
-    price_change_percentage_1y_in_currency: CurrencyMap
-    market_cap_change_24h_in_currency: CurrencyMap
-    market_cap_change_percentage_24h_in_currency: CurrencyMap
+    price_change_24h_in_currency: CurrencyMap | None = None
+    price_change_percentage_1h_in_currency: CurrencyMap | None = None
+    price_change_percentage_24h_in_currency: CurrencyMap | None = None
+    price_change_percentage_7d_in_currency: CurrencyMap | None = None
+    price_change_percentage_14d_in_currency: CurrencyMap | None = None
+    price_change_percentage_30d_in_currency: CurrencyMap | None = None
+    price_change_percentage_60d_in_currency: CurrencyMap | None = None
+    price_change_percentage_200d_in_currency: CurrencyMap | None = None
+    price_change_percentage_1y_in_currency: CurrencyMap | None = None
+    market_cap_change_24h_in_currency: CurrencyMap | None = None
+    market_cap_change_percentage_24h_in_currency: CurrencyMap | None = None
     total_supply: float | None = None
     max_supply: float | None = None
     max_supply_infinite: bool | None = None
     circulating_supply: float | None = None
     outstanding_supply: float | None = None
-    outstanding_token_value: float | None = None
+    outstanding_token_value: CurrencyMap | float | None = None
     last_updated: str | None = None
     sparkline_1h: Sparkline | None = None
     sparkline_7d: Sparkline | None = None
@@ -167,10 +167,10 @@ class CoinLinks(Base):
     chat_url: list[str]
     announcement_url: list[str]
     snapshot_url: str | None = None
-    twitter_screen_name: str
-    facebook_username: str
+    twitter_screen_name: str | None = None
+    facebook_username: str | None = None
     bitcointalk_thread_identifier: int | None = None
-    telegram_channel_identifier: str
+    telegram_channel_identifier: str | None = None
     subreddit_url: str | None = None
     repos_url: CoinLinksRepos
 
@@ -289,7 +289,7 @@ class MobileCoinDetail(Base):
     description: dict[str, str]
     links: CoinLinks
     image: ImageLinks
-    country_origin: str
+    country_origin: str | None = None
     genesis_date: str | None = None
     listing_price: float | None = None
     listing_currency: str | None = None
@@ -559,14 +559,122 @@ class CoinInsight(Base):
 class NewsArticle(Base):
     title: str
     authors: str
-    thumb_1x: str
-    thumb_2x: str
+    thumb_1x: str | None = None
+    thumb_2x: str | None = None
     news_site: str
     url: str
     updated_at: str
     crawled_at: str
 
 
+class NewsFeedCoin(Base):
+    id: str
+    crypto_symbol: str
+    image: str
+    price_change_percentage_24h: str | None = None
+
+
+class NewsFeedArticle(Base):
+    id: int
+    title: str
+    description: str
+    locale: str
+    author: str
+    url: str
+    crawled_at: int
+    created_at: int
+    updated_at: int
+    news_site: str
+    thumb_2x: str
+    coins: list[NewsFeedCoin] | None = None
+
+
+class NewsFeed(Base):
+    data: list[NewsFeedArticle]
+    count: int
+    page: int
+
+
 class CoinCategory(Base):
     category_id: str
     name: str
+
+
+class CoinMarket(Base):
+    id: str
+    symbol: str
+    name: str
+    image: str | None = None
+    current_price: float | None = None
+    market_cap: float | None = None
+    market_cap_rank: int | None = None
+    fully_diluted_valuation: float | None = None
+    total_volume: float | None = None
+    high_24h: float | None = None
+    low_24h: float | None = None
+    price_change_24h: float | None = None
+    price_change_percentage_24h: float | None = None
+    market_cap_change_24h: float | None = None
+    market_cap_change_percentage_24h: float | None = None
+    circulating_supply: float | None = None
+    total_supply: float | None = None
+    max_supply: float | None = None
+    ath: float | None = None
+    ath_change_percentage: float | None = None
+    ath_date: str | None = None
+    atl: float | None = None
+    atl_change_percentage: float | None = None
+    atl_date: str | None = None
+    roi: RoiData | None = None
+    last_updated: str | None = None
+    price_change_percentage_1h_in_currency: float | None = None
+    price_change_percentage_24h_in_currency: float | None = None
+    price_change_percentage_7d_in_currency: float | None = None
+
+
+class Rwa(Base):
+    id: str
+    symbol: str
+    name: str
+    asset_type: str
+    image: dict[str, str | None]
+    web_slug: str
+    last_updated: str | None = None
+
+
+class DerivativesTicker(Base):
+    symbol: str
+    base: str
+    target: str
+    coin_id: str | None = None
+    target_coin_id: str | None = None
+    rwa_id: str | None = None
+    trade_url: str | None = None
+    contract_type: str
+    last: float | None = None
+    h24_percentage_change: float | None = None
+    index: float | None = None
+    index_basis_percentage: float | None = None
+    bid_ask_spread: float | None = None
+    funding_rate: float | None = None
+    open_interest_usd: float | None = None
+    h24_volume: float | None = None
+    converted_volume: dict[str, str | None]
+    converted_last: dict[str, str | None]
+    last_traded: int | None = None
+    expired_at: JsonValue = None
+    base_image: dict[str, str | None]
+
+
+class DerivativesExchange(Base):
+    name: str
+    open_interest_btc: float | None = None
+    trade_volume_24h_btc: str | None = None
+    number_of_perpetual_pairs: int | None = None
+    number_of_futures_pairs: int | None = None
+    image: str | None = None
+    year_established: int | None = None
+    country: str | None = None
+    description: str | None = None
+    url: str | None = None
+    tickers: list[DerivativesTicker] | None = None

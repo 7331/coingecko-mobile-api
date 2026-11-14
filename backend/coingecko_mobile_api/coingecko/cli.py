@@ -1,4 +1,5 @@
 from contextlib import AsyncExitStack
+from datetime import UTC, datetime
 from typing import Annotated, Literal
 
 from pydantic import TypeAdapter
@@ -22,6 +23,7 @@ from coingecko_mobile_api.infrastructure.coingecko_api.client import CoinGeckoAp
 from coingecko_mobile_api.infrastructure.coingecko_api.enums import (
     CoinsOrder,
     CoinTickersOrder,
+    DerivativesTickersScope,
     TickersType,
     TokenomicsDuration,
 )
@@ -48,6 +50,8 @@ JsonOption = Annotated[bool, typer.Option("--json", help="Print the full model a
 _COIN_LITE_LIST_ADAPTER = TypeAdapter(list[CoinLite])
 _FULL_COIN_LIST_ADAPTER = TypeAdapter(list[FullCoin])
 _NEWS_LIST_ADAPTER = TypeAdapter(list[NewsArticle])
+_NEWS_FEED_COINS_SHOWN = 3
+_DERIVATIVES_TICKERS_SHOWN = 30
 _INSIGHT_LIST_ADAPTER = TypeAdapter(list[CoinInsight])
 _CATEGORY_LIST_ADAPTER = TypeAdapter(list[CoinCategory])
 _EMISSIONS_LIST_ADAPTER = TypeAdapter(list[TokenomicsEmissionsSeries])
@@ -68,11 +72,14 @@ def register_commands(command_line: typer.Typer) -> None:
     command_line.command(name="ticker")(ticker_command)
     command_line.command(name="rates")(rates_command)
     command_line.command(name="news")(news_command)
+    command_line.command(name="news-feed")(news_feed_command)
     command_line.command(name="insights")(insights_command)
     command_line.command(name="categories")(categories_command)
     command_line.command(name="allocation")(allocation_command)
     command_line.command(name="emissions")(emissions_command)
     command_line.command(name="financials")(financials_command)
+    command_line.command(name="rwa")(rwa_command)
+    command_line.command(name="derivatives")(derivatives_command)
 
 
 def price_command(
@@ -439,12 +446,12 @@ async def _news(*, query: str, page: int, per_page: int, locale: str, as_json: b
     async with AsyncExitStack() as exit_stack:
         service = build_coin_gecko_service(exit_stack=exit_stack)
         resolved = await service.resolve_coin(query=query)
-        articles = await service.client.list_coin_news(
-            coin_id=resolved.coin_id, page=page, per_page=per_page, locale=locale
-        )
+        articles = await service.coin_news(coin_id=resolved.coin_id, page=page, per_page=per_page, locale=locale)
     _print_resolution(resolved=resolved, query=query, as_json=as_json)
     if as_json:
         typer.echo(_NEWS_LIST_ADAPTER.dump_json(articles, by_alias=True, indent=2).decode())
+    elif not articles:
+        print_line(f"no news about {resolved.coin_id}; [bold]cg news-feed[/] shows the general feed")
     else:
         rows = [
             [
@@ -455,6 +462,88 @@ async def _news(*, query: str, page: int, per_page: int, locale: str, as_json: b
             for article in articles
         ]
         print_table(title=f"News · {resolved.coin_id} · page {page}", columns=["Updated", "Site", "Title"], rows=rows)
+
+
+def news_feed_command(
+    page: Annotated[int, typer.Option("--page", min=1)] = 1,
+    locale: Annotated[str, typer.Option("--locale")] = "en",
+    as_json: JsonOption = False,
+) -> None:
+    uvloop.run(_news_feed(page=page, locale=locale, as_json=as_json))
+
+
+async def _news_feed(*, page: int, locale: str, as_json: bool) -> None:
+    async with AsyncExitStack() as exit_stack:
+        service = build_coin_gecko_service(exit_stack=exit_stack)
+        feed = await service.client.list_news_feed(page=page, locale=locale)
+    if as_json:
+        typer.echo(feed.model_dump_json(by_alias=True, indent=2))
+        return
+    rows = [
+        [
+            f"{datetime.fromtimestamp(article.updated_at, tz=UTC):%Y-%m-%d %H:%M}",
+            article.news_site,
+            ", ".join(coin.crypto_symbol for coin in (article.coins or [])[:_NEWS_FEED_COINS_SHOWN]),
+            article.title if len(article.title) <= 90 else f"{article.title[:87]}...",
+        ]
+        for article in feed.data
+    ]
+    print_table(title=f"News feed · page {page}", columns=["Updated", "Site", "Coins", "Title"], rows=rows)
+
+
+def rwa_command(
+    rwa_id: Annotated[str, typer.Argument(help="Real-world asset id from `cg search`, for example sandisk")],
+    as_json: JsonOption = False,
+) -> None:
+    uvloop.run(_rwa(rwa_id=rwa_id, as_json=as_json))
+
+
+async def _rwa(*, rwa_id: str, as_json: bool) -> None:
+    async with AsyncExitStack() as exit_stack:
+        service = build_coin_gecko_service(exit_stack=exit_stack)
+        rwa = await service.client.fetch_rwa(rwa_id=rwa_id)
+    if as_json:
+        typer.echo(rwa.model_dump_json(by_alias=True, indent=2))
+    else:
+        print_line(f"[bold]{rwa.name}[/] ({rwa.symbol.upper()}) · {rwa.asset_type} · {rwa.id}")
+
+
+def derivatives_command(
+    exchange_id: Annotated[str, typer.Argument(help="Derivatives exchange id, for example aster or binance_futures")],
+    base: Annotated[str | None, typer.Option("--base", help="Only pairs of this base asset, for example TAC")] = None,
+    as_json: JsonOption = False,
+) -> None:
+    uvloop.run(_derivatives(exchange_id=exchange_id, base=base, as_json=as_json))
+
+
+async def _derivatives(*, exchange_id: str, base: str | None, as_json: bool) -> None:
+    async with AsyncExitStack() as exit_stack:
+        service = build_coin_gecko_service(exit_stack=exit_stack)
+        exchange = await service.client.fetch_derivatives_exchange(
+            exchange_id=exchange_id, include_tickers=DerivativesTickersScope.UNEXPIRED
+        )
+    tickers = [ticker for ticker in exchange.tickers or [] if base is None or ticker.base.upper() == base.upper()]
+    if as_json:
+        typer.echo(exchange.model_copy(update={"tickers": tickers}).model_dump_json(by_alias=True, indent=2))
+        return
+    tickers.sort(key=lambda ticker: -(ticker.open_interest_usd or 0.0))
+    rows = [
+        [
+            ticker.symbol,
+            ticker.coin_id or ticker.rwa_id or "-",
+            "-" if ticker.last is None else format_compact_number(value=ticker.last),
+            _optional_percentage(ticker.h24_percentage_change),
+            "-" if ticker.funding_rate is None else f"{ticker.funding_rate:+.3f}%",
+            "-" if ticker.open_interest_usd is None else format_money(ticker.open_interest_usd, currency_code="usd"),
+            "-" if ticker.index_basis_percentage is None else f"{ticker.index_basis_percentage:+.3f}%",
+        ]
+        for ticker in tickers[:_DERIVATIVES_TICKERS_SHOWN]
+    ]
+    print_table(
+        title=f"{exchange.name} · {len(tickers)} pairs (top {_DERIVATIVES_TICKERS_SHOWN} by open interest shown)",
+        columns=["Pair", "Coin or RWA id", "Last", "24h", "Funding", "Open interest", "Basis"],
+        rows=rows,
+    )
 
 
 def insights_command(
