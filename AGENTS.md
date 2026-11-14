@@ -35,7 +35,11 @@ differs from `7331/python-backend-template`.
   from one address starts returning 429.
 - `/api/v3/news/{coin_id}` answers with the general feed when a coin has no news of its own, and
   `/api/v3/news` is that general feed with the coins each article is tagged with (20 articles a
-  page, `per_page` ignored). `coingecko/news.py` keeps only the articles that are the coin's own;
+  page, `per_page` ignored). `coingecko/news.py` keeps only the articles that are the coin's own: tagged with the coin in the
+  feed, or naming the coin (its name, or its symbol of three letters or more in capitals) in the
+  title. Comparing the two lists is not enough: the feed is a selection, not every article, and it
+  lags the coin endpoint by minutes (measured 2026-11-14). A coin named after a common word still
+  collects stray headlines, as CoinGecko's own tags do (`could`, `4`).
   `cg news <coin>` prints those and `cg news-feed` prints the feed.
 - A coin's detail arrives with `null` for the price-change maps longer than its age, and with
   `null` links and `country_origin` on tokenized stocks, so those fields are optional; 16 of 19

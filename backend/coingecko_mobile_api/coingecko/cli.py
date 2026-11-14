@@ -446,7 +446,7 @@ async def _news(*, query: str, page: int, per_page: int, locale: str, as_json: b
     async with AsyncExitStack() as exit_stack:
         service = build_coin_gecko_service(exit_stack=exit_stack)
         resolved = await service.resolve_coin(query=query)
-        articles = await service.coin_news(coin_id=resolved.coin_id, page=page, per_page=per_page, locale=locale)
+        articles = await service.coin_news(resolved, page=page, per_page=per_page, locale=locale)
     _print_resolution(resolved=resolved, query=query, as_json=as_json)
     if as_json:
         typer.echo(_NEWS_LIST_ADAPTER.dump_json(articles, by_alias=True, indent=2).decode())

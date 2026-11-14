@@ -18,14 +18,20 @@ class CoinGeckoService:
         return await self.resolver.resolve_coin(query=query)
 
     async def coin_news(
-        self, *, coin_id: str, page: int = 1, per_page: int = 10, locale: str = "en"
+        self, coin: ResolvedCoin, *, page: int = 1, per_page: int = 10, locale: str = "en"
     ) -> list[NewsArticle]:
         async with asyncio.TaskGroup() as tasks:
             articles = tasks.create_task(
-                self.client.list_coin_news(coin_id=coin_id, page=page, per_page=per_page, locale=locale)
+                self.client.list_coin_news(coin_id=coin.coin_id, page=page, per_page=per_page, locale=locale)
             )
             feed = tasks.create_task(self.client.list_news_feed(locale=locale))
-        return articles_about_coin(articles.result(), coin_id=coin_id, feed=feed.result())
+        return articles_about_coin(
+            articles.result(),
+            coin_id=coin.coin_id,
+            coin_name=coin.name,
+            coin_symbol=coin.symbol,
+            feed=feed.result(),
+        )
 
     async def coin_price_summary(self, *, query: str, vs_currency: str = "usd") -> CoinPriceSummary:
         resolved = await self.resolve_coin(query=query)
