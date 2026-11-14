@@ -65,6 +65,28 @@ class CoinResolver:
         exact = _find_exact(index=index, normalized=normalized)
         if exact is not None:
             return exact
+        api_candidates = await self._api_search_candidates(query=query)
+        exact_api_candidate = next(
+            (
+                candidate
+                for candidate in api_candidates
+                if normalized in {candidate.coin_id, candidate.symbol.lower(), candidate.name.lower()}
+            ),
+            None,
+        )
+        if exact_api_candidate is not None:
+            return _resolved_from_search(coin=exact_api_candidate, candidates=api_candidates)
+        coins_with_this_id = await self._client.list_coins_markets(vs_currency="usd", coin_ids=[normalized])
+        if coins_with_this_id:
+            coin = coins_with_this_id[0]
+            return ResolvedCoin(
+                coin_id=coin.id,
+                web_slug=coin.id,
+                symbol=coin.symbol,
+                name=coin.name,
+                market_cap_rank=coin.market_cap_rank,
+                match_kind=MatchKind.COIN_ID,
+            )
         prefix = _find_prefix(index=index, normalized=normalized)
         if prefix is not None:
             return prefix
@@ -74,18 +96,8 @@ class CoinResolver:
             resolved_from_index = index.by_id().get(best.coin_id)
             if resolved_from_index is not None:
                 return _resolved(coin=resolved_from_index, match_kind=MatchKind.FUZZY, candidates=fuzzy_candidates)
-        api_candidates = await self._api_search_candidates(query=query)
         if api_candidates:
-            best = api_candidates[0]
-            return ResolvedCoin(
-                coin_id=best.coin_id,
-                web_slug=best.coin_id,
-                symbol=best.symbol,
-                name=best.name,
-                market_cap_rank=best.market_cap_rank,
-                match_kind=MatchKind.API_SEARCH,
-                candidates=api_candidates,
-            )
+            return _resolved_from_search(coin=api_candidates[0], candidates=api_candidates)
         raise CoinNotFoundError(query=query, candidates=fuzzy_candidates)
 
     async def _read_or_refresh_index(self) -> CoinIndex:
@@ -132,10 +144,7 @@ class CoinResolver:
         return age_seconds > self._settings.cache_ttl_seconds
 
     async def _api_search_candidates(self, *, query: str) -> tuple[LookupCandidate, ...]:
-        try:
-            results = await self._client.search(query=query, vs_currency="usd")
-        except CoinGeckoApiError, httpx.HTTPError:
-            return ()
+        results = await self._client.search(query=query, vs_currency="usd")
         return tuple(
             LookupCandidate(
                 coin_id=coin.id,
@@ -144,8 +153,20 @@ class CoinResolver:
                 market_cap_rank=coin.market_cap_rank,
                 similarity=SequenceMatcher(None, query.strip().lower(), coin.name.lower()).ratio(),
             )
-            for coin in results.coins[:_CANDIDATE_COUNT]
+            for coin in results.coins
         )
+
+
+def _resolved_from_search(*, coin: LookupCandidate, candidates: tuple[LookupCandidate, ...]) -> ResolvedCoin:
+    return ResolvedCoin(
+        coin_id=coin.coin_id,
+        web_slug=coin.coin_id,
+        symbol=coin.symbol,
+        name=coin.name,
+        market_cap_rank=coin.market_cap_rank,
+        match_kind=MatchKind.API_SEARCH,
+        candidates=candidates[:_CANDIDATE_COUNT],
+    )
 
 
 def _find_exact(*, index: CoinIndex, normalized: str) -> ResolvedCoin | None:

@@ -22,11 +22,13 @@ flowchart TD
    `AsyncExitStack`; transport-level connect retries plus `stamina` retries on connection errors,
    429 and 5xx with jittered backoff.
 2. `coingecko_mobile_api/coingecko/` — the domain. `service.py` (`CoinGeckoService`) holds the use cases other code
-   calls (a Discord bot imports this, not the client): `resolve_coin` and `coin_price_summary`.
+   calls (a Discord bot imports this, not the client): `resolve_coin`, `coin_price_summary` and
+   `coin_news` (only the articles that are the coin's own, `news.py`).
    `chart_image.py` renders the dark-theme candlestick PNG that `cg chart` and the Discord bot
    share. `lookup.py` (`CoinResolver`) keeps a top-300 `coins_lite` index on disk
-   (`configuration.py`, `COINGECKO_LOOKUP_*`), serves exact id/slug/symbol/name hits, prefix hits,
-   `difflib` fuzzy hits and a search-endpoint fallback, and serves stale cache when a refresh fails.
+   (`configuration.py`, `COINGECKO_LOOKUP_*`), serves exact id/slug/symbol/name hits from it, then
+   exact hits from the search endpoint and an exact id from `coins/markets`, then prefix hits,
+   `difflib` fuzzy hits and the best search result, and serves stale cache when a refresh fails.
    Read types for callers sit in `types.py`; domain errors in `errors.py`; CLI output formatting in
    `rendering.py`.
 3. `coingecko_mobile_api/cli.py` — the typer app. `QueryDefaultingGroup` sends any unknown first token to the

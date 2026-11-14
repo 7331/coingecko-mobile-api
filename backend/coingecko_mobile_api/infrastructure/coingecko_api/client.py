@@ -9,6 +9,7 @@ from coingecko_mobile_api.infrastructure.coingecko_api.configuration import Coin
 from coingecko_mobile_api.infrastructure.coingecko_api.enums import (
     CoinsOrder,
     CoinTickersOrder,
+    DerivativesTickersScope,
     MarketChartInterval,
     TickersType,
     TokenomicsDuration,
@@ -23,7 +24,9 @@ from coingecko_mobile_api.infrastructure.coingecko_api.schemas import (
     CoinCategory,
     CoinInsight,
     CoinLite,
+    CoinMarket,
     CoinTickers,
+    DerivativesExchange,
     ExchangeRates,
     FullCoin,
     GlobalResponse,
@@ -31,7 +34,9 @@ from coingecko_mobile_api.infrastructure.coingecko_api.schemas import (
     MobileCoinDetail,
     MobileSearchResults,
     NewsArticle,
+    NewsFeed,
     OhlcPoint,
+    Rwa,
     TickerPriceData,
     TokenomicsAllocationResponse,
     TokenomicsEmissionsSeries,
@@ -42,6 +47,11 @@ _COIN_LITE_LIST_ADAPTER: TypeAdapter[list[CoinLite]] = TypeAdapter(list[CoinLite
 _FULL_COIN_LIST_ADAPTER: TypeAdapter[list[FullCoin]] = TypeAdapter(list[FullCoin])
 _INSIGHT_LIST_ADAPTER: TypeAdapter[list[CoinInsight]] = TypeAdapter(list[CoinInsight])
 _NEWS_LIST_ADAPTER: TypeAdapter[list[NewsArticle]] = TypeAdapter(list[NewsArticle])
+_NEWS_FEED_ADAPTER: TypeAdapter[NewsFeed] = TypeAdapter(NewsFeed)
+_COIN_MARKET_LIST_ADAPTER: TypeAdapter[list[CoinMarket]] = TypeAdapter(list[CoinMarket])
+_RWA_ADAPTER: TypeAdapter[Rwa] = TypeAdapter(Rwa)
+_DERIVATIVES_EXCHANGE_ADAPTER: TypeAdapter[DerivativesExchange] = TypeAdapter(DerivativesExchange)
+_COIN_MARKETS_PAGE_SIZE = 250
 _CATEGORY_LIST_ADAPTER: TypeAdapter[list[CoinCategory]] = TypeAdapter(list[CoinCategory])
 _GLOBAL_RESPONSE_ADAPTER: TypeAdapter[GlobalResponse] = TypeAdapter(GlobalResponse)
 _SEARCH_RESULTS_ADAPTER: TypeAdapter[MobileSearchResults] = TypeAdapter(MobileSearchResults)
@@ -263,6 +273,32 @@ class CoinGeckoApiClient:
     ) -> list[NewsArticle]:
         params = {"page": str(page), "per_page": str(per_page), "locale": locale}
         return await self._request_json(f"/api/v3/news/{coin_id}", params=params, adapter=_NEWS_LIST_ADAPTER)
+
+    async def list_news_feed(self, *, page: int = 1, locale: str = "en") -> NewsFeed:
+        params = {"page": str(page), "locale": locale}
+        return await self._request_json("/api/v3/news", params=params, adapter=_NEWS_FEED_ADAPTER)
+
+    async def list_coins_markets(self, *, vs_currency: str, coin_ids: list[str]) -> list[CoinMarket]:
+        params = {
+            "vs_currency": vs_currency,
+            "ids": ",".join(coin_ids),
+            "per_page": str(_COIN_MARKETS_PAGE_SIZE),
+            "price_change_percentage": "1h,24h,7d",
+        }
+        return await self._request_json("/api/v3/coins/markets", params=params, adapter=_COIN_MARKET_LIST_ADAPTER)
+
+    async def fetch_rwa(self, *, rwa_id: str) -> Rwa:
+        return await self._request_json(f"/api/v3/rwas/{rwa_id}", params={}, adapter=_RWA_ADAPTER)
+
+    async def fetch_derivatives_exchange(
+        self, *, exchange_id: str, include_tickers: DerivativesTickersScope | None = None
+    ) -> DerivativesExchange:
+        params: dict[str, str] = {}
+        if include_tickers is not None:
+            params["include_tickers"] = include_tickers
+        return await self._request_json(
+            f"/api/v3/derivatives/exchanges/{exchange_id}", params=params, adapter=_DERIVATIVES_EXCHANGE_ADAPTER
+        )
 
     async def list_coin_categories(self) -> list[CoinCategory]:
         return await self._request_json("/api/v3/coins/categories/list", params={}, adapter=_CATEGORY_LIST_ADAPTER)

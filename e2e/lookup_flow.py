@@ -26,6 +26,14 @@ def run_lookup_flow(report: FlowReport) -> None:
         detail=f"exit {fuzzy.exit_code}, coin_id {fuzzy_summary.coin_id}",
     )
 
+    outside_index = CliResult.run("sandisk-bstocks-tokenized-stock", "--json")
+    outside_index_summary = outside_index.json_output(LookupSummaryModel)
+    report.require_check(
+        "price resolves an exact coin id outside the top-300 index",
+        passed=outside_index.exit_code == 0 and outside_index_summary.coin_id == "sandisk-bstocks-tokenized-stock",
+        detail=f"exit {outside_index.exit_code}, coin_id {outside_index_summary.coin_id}",
+    )
+
     symbol = CliResult.run("eth", "--vs", "eur")
     report.require_check(
         "price eth --vs eur prints euros",

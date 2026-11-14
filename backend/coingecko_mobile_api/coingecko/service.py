@@ -1,8 +1,12 @@
+import asyncio
+
 from coingecko_mobile_api.coingecko.errors import CoinNotFoundError
 from coingecko_mobile_api.coingecko.lookup import CoinResolver
+from coingecko_mobile_api.coingecko.news import articles_about_coin
 from coingecko_mobile_api.coingecko.types import CoinPriceSummary, ResolvedCoin
 from coingecko_mobile_api.infrastructure.coingecko_api.client import CoinGeckoApiClient
 from coingecko_mobile_api.infrastructure.coingecko_api.errors import CoinGeckoInvalidRequestError
+from coingecko_mobile_api.infrastructure.coingecko_api.schemas import NewsArticle
 
 
 class CoinGeckoService:
@@ -12,6 +16,16 @@ class CoinGeckoService:
 
     async def resolve_coin(self, *, query: str) -> ResolvedCoin:
         return await self.resolver.resolve_coin(query=query)
+
+    async def coin_news(
+        self, *, coin_id: str, page: int = 1, per_page: int = 10, locale: str = "en"
+    ) -> list[NewsArticle]:
+        async with asyncio.TaskGroup() as tasks:
+            articles = tasks.create_task(
+                self.client.list_coin_news(coin_id=coin_id, page=page, per_page=per_page, locale=locale)
+            )
+            feed = tasks.create_task(self.client.list_news_feed(locale=locale))
+        return articles_about_coin(articles.result(), coin_id=coin_id, feed=feed.result())
 
     async def coin_price_summary(self, *, query: str, vs_currency: str = "usd") -> CoinPriceSummary:
         resolved = await self.resolve_coin(query=query)
@@ -39,9 +53,9 @@ class CoinGeckoService:
             name=resolved.name,
             vs_currency=currency,
             current_price=market_data.current_price.get(currency),
-            price_change_percentage_1h=market_data.price_change_percentage_1h_in_currency.get(currency),
-            price_change_percentage_24h=market_data.price_change_percentage_24h_in_currency.get(currency),
-            price_change_percentage_7d=market_data.price_change_percentage_7d_in_currency.get(currency),
+            price_change_percentage_1h=(market_data.price_change_percentage_1h_in_currency or {}).get(currency),
+            price_change_percentage_24h=(market_data.price_change_percentage_24h_in_currency or {}).get(currency),
+            price_change_percentage_7d=(market_data.price_change_percentage_7d_in_currency or {}).get(currency),
             high_24h=market_data.high_24h.get(currency),
             low_24h=market_data.low_24h.get(currency),
             market_cap=market_data.market_cap.get(currency),
